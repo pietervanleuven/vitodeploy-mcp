@@ -1,0 +1,123 @@
+# VitoDeploy MCP Server
+
+A [VitoDeploy](https://vitodeploy.com) plugin that adds a [Model Context Protocol](https://modelcontextprotocol.io)
+endpoint to your Vito panel, so Claude and other AI agents can manage your servers, sites, deployments, databases,
+workers, cron jobs and firewall rules with your existing Vito API keys.
+
+Once enabled, the endpoint lives at `https://<your-vito>/api/mcp`. There is nothing to install on the machine that runs
+the agent.
+
+Requires VitoDeploy **4.1** or later.
+
+## How it works
+
+Every tool is a thin wrapper around one of Vito's own REST API routes. The plugin runs that route in-process, as the
+caller, through the route's full middleware stack: Sanctum authentication, the `read`/`write` token abilities, project
+scoping and the controller's policies and validation. A tool can therefore never do more than the same API key could do
+over Vito's REST API, and the plugin contains no permission or validation logic of its own.
+
+The plugin runs no shell commands, makes no network requests and does not write to the database itself. Its only
+additions are a route (`/api/mcp`) and the MCP protocol handling.
+
+## Installation
+
+1. In Vito, open **Admin → Plugins**, install **MCP Server** (or install it from this repository's GitHub URL) and
+   enable it.
+2. Create an API key under **Settings → API Keys**. Give it only what the agent needs:
+   - `read` only: the agent sees the 24 read-only tools and nothing else.
+   - `read` and `write`: all 49 tools.
+   - Limit the key to one project if the agent only needs that project.
+
+## Connecting a client
+
+### Claude Code
+
+```sh
+claude mcp add --transport http vitodeploy https://vito.example.com/api/mcp \
+  --header "Authorization: Bearer <your-api-key>"
+```
+
+### Other clients
+
+Most clients that support remote MCP servers accept a configuration like this (for example `.mcp.json` or Claude
+Desktop's `claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "vitodeploy": {
+      "type": "http",
+      "url": "https://vito.example.com/api/mcp",
+      "headers": {
+        "Authorization": "Bearer <your-api-key>"
+      }
+    }
+  }
+}
+```
+
+The endpoint authenticates with a bearer token only. Clients that require OAuth for remote servers (such as custom
+connectors on claude.ai) are not supported.
+
+## Tools
+
+- **Projects**: health check, list and create projects
+- **Servers**: list, get, reboot
+- **Sites**: list, get, create, delete, deploy, deployments, deployment script get/update, web directory, `.env`
+  keys/update, SSL enable/disable, list SSL certificates
+- **Databases**: databases and database users list/create/delete/link
+- **Services**: list, start/stop/restart/reload/enable/disable
+- **Workers**: list (server or site), create, update, delete, start/restart, logs
+- **Cron jobs**: list (server or site), create, delete
+- **Firewall**: list, create, delete
+- **Workflows**: list, run, list runs, run logs
+- **SSH keys**: list deployed keys, deploy a key to a server user
+
+Every tool carries [MCP annotations](https://modelcontextprotocol.io/docs/concepts/tools#tool-annotations)
+(`readOnlyHint`, `destructiveHint`, …), so clients can ask for confirmation before destructive actions.
+
+Because the plugin only wraps Vito's REST API, anything that API does not offer is not available here either, for
+example: listing or validating a site's domains, viewing the generated vhost, stopping a worker, enabling or disabling a
+cron job, and reading deployment logs.
+
+## Security
+
+- `.env` values never reach the model: `vito_get_site_env` returns variable names only.
+- Browser requests from other origins are rejected, as the MCP specification requires for HTTP servers.
+- Worker and workflow logs can contain anything your applications print. Treat them as sensitive and, in agentic use,
+  as untrusted input.
+
+## Protocol
+
+MCP Streamable HTTP, stateless: each `POST` carries one JSON-RPC message and receives a JSON response. There are no
+sessions and no server-sent event stream (`GET` and `DELETE` return 405). Supported protocol versions: `2025-11-25`,
+`2025-06-18` and `2025-03-26`.
+
+## Development
+
+The plugin only resolves against a VitoDeploy checkout, so tests and static analysis run from inside one:
+
+```bash
+git clone --depth 1 --branch 4.x https://github.com/vitodeploy/vito.git
+cd vito && composer install
+touch .env && php artisan key:generate && touch storage/database-test.sqlite
+mkdir -p storage/app/key-pairs
+
+# Copy this repository into the plugins directory
+rsync -a --exclude .git --exclude vendor /path/to/vitodeploy-mcp/ app/Vito/Plugins/Pietervanleuven/VitodeployMcp/
+
+php artisan test app/Vito/Plugins/Pietervanleuven/VitodeployMcp/tests
+./vendor/bin/phpstan analyse -c app/Vito/Plugins/Pietervanleuven/VitodeployMcp/phpstan.neon
+```
+
+On macOS, Vito's test setup fails because the system `ssh-keygen` cannot write ed25519 keys in PEM format. Put a
+wrapper that drops the `-m PEM` arguments earlier on your `PATH` for local test runs; CI runs on Linux and is not
+affected.
+
+Code style runs standalone: `composer install && composer lint:test` in this repository.
+
+CI does the same against the pinned Vito release and, as an advisory job, the `4.x` branch.
+
+## License
+
+MIT
