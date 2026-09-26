@@ -2,7 +2,7 @@
 
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\Server;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Plugin;
-use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Tests\Support\InteractsWithMcp;
+use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\tests\Support\InteractsWithMcp;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;

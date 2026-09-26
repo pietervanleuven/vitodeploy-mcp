@@ -10,7 +10,7 @@ use App\Models\Worker;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\Tool;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\ToolRegistry;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Support\EnvKeys;
-use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Tests\Support\InteractsWithMcp;
+use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\tests\Support\InteractsWithMcp;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Route;

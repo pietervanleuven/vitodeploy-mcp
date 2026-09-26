@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Tests\Support;
+namespace App\Vito\Plugins\Pietervanleuven\VitodeployMcp\tests\Support;
 
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Plugin;
 use Illuminate\Testing\TestResponse;
