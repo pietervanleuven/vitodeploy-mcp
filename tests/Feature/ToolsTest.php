@@ -4,6 +4,8 @@ use App\Enums\UserRole;
 use App\Enums\WorkerStatus;
 use App\Facades\SSH;
 use App\Models\CronJob;
+use App\Models\Database;
+use App\Models\DatabaseUser;
 use App\Models\Project;
 use App\Models\Server;
 use App\Models\Site;
@@ -201,6 +203,40 @@ describe('vito_get_site_env', function (): void {
             ->toBe(['APP_NAME', 'QUEUE', 'MAIL.HOST'])
             ->and(EnvKeys::from([]))->toBe([]);
     });
+});
+
+describe('vito_create_database', function (): void {
+    test('links an existing user given only existing_user_id', function (): void {
+        SSH::fake();
+        $user = DatabaseUser::factory()->create(['server_id' => $this->server->id, 'username' => 'app', 'databases' => []]);
+
+        $result = $this->callTool('vito_create_database', [
+            ...$this->serverIds(),
+            'name' => 'app',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'existing_user_id' => $user->id,
+        ]);
+
+        expect($result['isError'])->toBeFalse($result['text'])
+            ->and($user->refresh()->databases)->toContain('app');
+    });
+
+    test('rejects combinations Vito would half-apply', function (array $arguments): void {
+        $result = $this->callTool('vito_create_database', [
+            ...$this->serverIds(),
+            'name' => 'app',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            ...$arguments,
+        ]);
+
+        expect($result['isError'])->toBeTrue()
+            ->and(Database::query()->where('name', 'app')->exists())->toBeFalse();
+    })->with([
+        'user and existing user' => [['existing_user_id' => 1, 'username' => 'app', 'password' => 'secret123']],
+        'username without password' => [['username' => 'app']],
+    ]);
 });
 
 describe('vito_update_worker', function (): void {

@@ -14,7 +14,8 @@ Requires VitoDeploy **4.1** or later.
 Every tool is a thin wrapper around one of Vito's own REST API routes. The plugin runs that route in-process, as the
 caller, through the route's full middleware stack: Sanctum authentication, the `read`/`write` token abilities, project
 scoping and the controller's policies and validation. A tool can therefore never do more than the same API key could do
-over Vito's REST API, and the plugin contains no permission or validation logic of its own.
+over Vito's REST API, and the plugin contains no permission or validation logic of its own (a few tools only reject
+argument combinations that Vito would silently ignore or half-apply).
 
 The plugin runs no shell commands, makes no network requests and does not write to the database itself. Its only
 additions are a route (`/api/mcp`) and the MCP protocol handling.
