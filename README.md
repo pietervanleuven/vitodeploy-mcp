@@ -66,7 +66,7 @@ connectors on claude.ai) are not supported.
 - **Servers**: list, get, reboot
 - **Sites**: list, get, create, delete, deploy, deployments, deployment script get/update, web directory, `.env`
   keys, replace the file or set/unset single variables, SSL enable/disable, list SSL certificates
-- **Databases**: databases and database users list/create/delete/link
+- **Databases**: databases list/create/delete, database users list/create/link
 - **Services**: list, start/stop/restart/reload/enable/disable
 - **Workers**: list (server or site), create, update, delete, start/restart, logs
 - **Cron jobs**: list (server or site), create, delete
@@ -96,43 +96,10 @@ MCP Streamable HTTP, stateless: each `POST` carries one JSON-RPC message and rec
 sessions and no server-sent event stream (`GET` and `DELETE` return 405). Supported protocol versions: `2025-11-25`,
 `2025-06-18` and `2025-03-26`.
 
-## Development
+## Contributing
 
-The plugin only resolves against a VitoDeploy checkout, so tests and static analysis run from inside one:
-
-```bash
-git clone --depth 1 --branch 4.x https://github.com/vitodeploy/vito.git
-cd vito && composer install
-touch .env && php artisan key:generate && touch storage/database-test.sqlite
-mkdir -p storage/app/key-pairs
-
-# Copy this repository into the plugins directory
-rsync -a --exclude .git --exclude vendor /path/to/vitodeploy-mcp/ app/Vito/Plugins/Pietervanleuven/VitodeployMcp/
-
-php artisan test app/Vito/Plugins/Pietervanleuven/VitodeployMcp/tests
-./vendor/bin/phpstan analyse -c app/Vito/Plugins/Pietervanleuven/VitodeployMcp/phpstan.neon
-```
-
-On macOS, Vito's test setup fails because the system `ssh-keygen` cannot write ed25519 keys in PEM format. Put a
-wrapper that drops the `-m PEM` arguments earlier on your `PATH` for local test runs; CI runs on Linux and is not
-affected.
-
-Code style runs standalone: `composer install && composer lint:test` in this repository.
-
-CI does the same against the pinned Vito release and, as an advisory job, the `4.x` branch.
-
-### Commits and releases
-
-Commit messages and PR titles follow [Conventional Commits](https://www.conventionalcommits.org): `feat: …` for new
-tools or arguments, `fix(sites): …` for bug fixes, `feat!: …` for breaking changes, and `docs`, `test`, `ci`,
-`refactor` or `chore` for the rest. PRs are squash-merged, so the PR title becomes the commit on `main`; a check
-rejects titles that don't follow the format.
-
-Releases are made by [release-please](https://github.com/googleapis/release-please). It keeps a release PR open with
-the next version, the `composer.json` version bump and the `CHANGELOG.md` entry, built from the commits on `main`.
-Merging that PR tags the release and publishes the GitHub release that Vito installs from. While the version is below
-1.0, `feat` and breaking changes bump the minor version and `fix` bumps the patch.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add a tool, the commit conventions and how releases are made.
 
 ## License
 
-MIT
+MIT, see [LICENSE](LICENSE).
