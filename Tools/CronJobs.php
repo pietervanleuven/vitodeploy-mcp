@@ -46,8 +46,8 @@ final class CronJobs
                     'server_id' => Arg::serverId(),
                     'command' => Arg::string('Command to run'),
                     'user' => Arg::string('Linux user to run as'),
-                    'frequency' => Arg::string('Frequency: a cron expression, or a preset like \'* * * * *\', hourly/daily depending on Vito UI presets. Use \'custom\' plus the custom field for arbitrary expressions.'),
-                    'custom' => Arg::optional(Arg::string('Custom cron expression when frequency is \'custom\'')),
+                    'frequency' => Arg::string('Cron expression, e.g. \'* * * * *\' or \'0 3 * * *\''),
+                    'custom' => Arg::optional(Arg::string('Only with frequency=\'custom\': the cron expression. Passing the expression as frequency does the same')),
                     'name' => Arg::optional(Arg::string('Display name')),
                     'site_id' => Arg::optional(Arg::integer('Attach the cron job to a site')),
                 ])

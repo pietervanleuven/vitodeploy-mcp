@@ -35,9 +35,9 @@ final class Firewall
                     'type' => Arg::enum(['allow', 'deny'], ''),
                     'protocol' => Arg::enum(['tcp', 'udp'], ''),
                     'port' => Arg::string('Port or port range, e.g. \'443\' or \'6000:6100\''),
-                    'source_any' => Arg::optional(Arg::boolean('Apply to any source (default true)')),
-                    'source' => Arg::optional(Arg::string('Source IP when source_any=false')),
-                    'mask' => Arg::optional(Arg::integer('Source subnet mask, e.g. 24')),
+                    'source_any' => Arg::optional(Arg::boolean('Apply to any source. Defaults to true without source and false with it; true ignores source and mask')),
+                    'source' => Arg::optional(Arg::string('Source IP address to restrict the rule to (required when source_any=false)')),
+                    'mask' => Arg::optional(Arg::integer('Source subnet mask, e.g. 32 for one IPv4 address or 24 (required when source_any=false)')),
                 ])
                 ->route('api.projects.servers.firewall-rules.create'),
 
