@@ -231,6 +231,27 @@ describe('vito_set_site_env_vars', function (): void {
     });
 });
 
+describe('deployment script', function (): void {
+    test('reports and writes the pre-flight script under Modern Deployment', function (): void {
+        $this->site->update(['type_data' => [...($this->site->type_data ?? []), 'modern_deployment' => true]]);
+        $ids = [...$this->serverIds(), 'site_id' => $this->site->id];
+
+        $result = $this->callTool('vito_update_deployment_script', [...$ids, 'script' => 'php artisan migrate --force']);
+
+        expect($result['isError'])->toBeFalse($result['text'])
+            ->and($result['data'])->toMatchArray(['modern_deployment' => true, 'script_name' => 'pre-flight'])
+            ->and($this->site->refresh()->preFlightScript->content)->toBe('php artisan migrate --force')
+            ->and($this->callTool('vito_get_deployment_script', $ids)['data'])
+            ->toBe(['script' => 'php artisan migrate --force', 'modern_deployment' => true, 'script_name' => 'pre-flight']);
+    });
+
+    test('reports the default script otherwise', function (): void {
+        $result = $this->callTool('vito_get_deployment_script', [...$this->serverIds(), 'site_id' => $this->site->id]);
+
+        expect($result['data'])->toMatchArray(['modern_deployment' => false, 'script_name' => 'default']);
+    });
+});
+
 describe('vito_create_database', function (): void {
     test('links an existing user given only existing_user_id', function (): void {
         SSH::fake();

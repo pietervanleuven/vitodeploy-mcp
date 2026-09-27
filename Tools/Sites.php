@@ -78,7 +78,7 @@ final class Sites
             Tool::make('vito_deploy_site')
                 ->title('Deploy site')
                 ->nonDestructive()
-                ->description('Trigger a deployment for a site using its deployment script.')
+                ->description('Trigger a deployment for a site. Runs the deployment script, or under Modern Deployment the build and pre-flight scripts (see vito_get_deployment_script).')
                 ->input([
                     'project_id' => Arg::projectId(),
                     'server_id' => Arg::serverId(),
@@ -113,26 +113,39 @@ final class Sites
             Tool::make('vito_get_deployment_script')
                 ->title('Get deployment script')
                 ->readOnly()
-                ->description('Get the deployment script of a site.')
+                ->description('Get the deployment script that the API can read and write for a site. That is the default deployment script, or the pre-flight script when the site has Modern Deployment enabled; script_name says which. A Modern Deployment site also has a build script, which the API cannot reach.')
                 ->input([
                     'project_id' => Arg::projectId(),
                     'server_id' => Arg::serverId(),
                     'site_id' => Arg::siteId(),
                 ])
-                ->route('api.projects.servers.sites.deployment-script.show'),
+                ->handle(
+                    fn (array $arguments, ToolContext $context) => [
+                        ...$context->api->call('api.projects.servers.sites.deployment-script.show', $arguments),
+                        ...self::scriptInfo($arguments, $context),
+                    ],
+                    ['api.projects.servers.sites.deployment-script.show', 'api.projects.servers.sites.show'],
+                ),
 
             Tool::make('vito_update_deployment_script')
                 ->title('Update deployment script')
                 ->destructive()
-                ->description('Replace the deployment script of a site.')
+                ->description('Replace the deployment script that the API can reach: the default deployment script, or the pre-flight script when the site has Modern Deployment enabled (the build script is not reachable through the API). Turning Modern Deployment on or off in Vito clears the scripts. Check script_name with vito_get_deployment_script first.')
                 ->input([
                     'project_id' => Arg::projectId(),
                     'server_id' => Arg::serverId(),
                     'site_id' => Arg::siteId(),
-                    'script' => Arg::string('Full deployment script content'),
+                    'script' => Arg::string('Full script content'),
                     'restart_workers' => Arg::optional(Arg::boolean('Restart site workers after deployments')),
                 ])
-                ->route('api.projects.servers.sites.deployment-script'),
+                ->handle(
+                    function (array $arguments, ToolContext $context) {
+                        $context->api->call('api.projects.servers.sites.deployment-script', $arguments);
+
+                        return ['success' => true, ...self::scriptInfo($arguments, $context)];
+                    },
+                    ['api.projects.servers.sites.deployment-script', 'api.projects.servers.sites.show'],
+                ),
 
             Tool::make('vito_get_site_env')
                 ->title('List site .env keys')
@@ -270,5 +283,20 @@ final class Sites
                 ])
                 ->route('api.projects.servers.ssls'),
         ];
+    }
+
+    /**
+     * Which script the deployment-script routes act on, from the site's
+     * Modern Deployment flag (see Site::activeDeploymentScript() in Vito).
+     *
+     * @param  array<string, mixed>  $arguments
+     * @return array{modern_deployment: bool, script_name: string}
+     */
+    private static function scriptInfo(array $arguments, ToolContext $context): array
+    {
+        $site = $context->api->call('api.projects.servers.sites.show', Arr::only($arguments, ['project_id', 'server_id', 'site_id']));
+        $modern = (bool) (($site['data'] ?? $site)['modern_deployment'] ?? false);
+
+        return ['modern_deployment' => $modern, 'script_name' => $modern ? 'pre-flight' : 'default'];
     }
 }

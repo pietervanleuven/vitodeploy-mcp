@@ -79,7 +79,8 @@ Every tool carries [MCP annotations](https://modelcontextprotocol.io/docs/concep
 
 Because the plugin only wraps Vito's REST API, anything that API does not offer is not available here either, for
 example: listing or validating a site's domains, viewing the generated vhost, stopping a worker, enabling or disabling a
-cron job, and reading deployment logs.
+cron job, reading deployment logs, and the build script of a site with Modern Deployment enabled (the deployment
+script tools act on its pre-flight script instead, and say so in their response).
 
 ## Security
 
