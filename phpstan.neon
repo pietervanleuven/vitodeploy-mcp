@@ -11,7 +11,7 @@ includes:
     - %rootDir%/../../larastan/larastan/extension.neon
 
 parameters:
-    level: 5
+    level: 8
     paths:
         - .
     excludePaths:

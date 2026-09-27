@@ -1,7 +1,9 @@
 <?php
 
+use App\Enums\ServiceStatus;
 use App\Enums\UserRole;
 use App\Enums\WorkerStatus;
+use App\Enums\WorkflowRunStatus;
 use App\Facades\SSH;
 use App\Models\CronJob;
 use App\Models\Database;
@@ -11,6 +13,8 @@ use App\Models\Server;
 use App\Models\Site;
 use App\Models\SourceControl;
 use App\Models\Worker;
+use App\Models\Workflow;
+use App\Models\WorkflowRun;
 use App\SourceControlProviders\Github;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\Tool;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\ToolRegistry;
@@ -20,6 +24,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class, InteractsWithMcp::class);
@@ -342,4 +347,41 @@ describe('action tools', function (): void {
         expect($result['isError'])->toBeFalse($result['text'])
             ->and(CronJob::query()->where('command', 'php artisan schedule:run')->value('site_id'))->toBe($this->site->id);
     });
+
+    test('vito_service_action calls the matching route', function (): void {
+        Bus::fake();
+        $service = $this->server->services()->where('type', 'webserver')->firstOrFail();
+
+        $result = $this->callTool('vito_service_action', [...$this->serverIds(), 'service_id' => $service->id, 'action' => 'restart']);
+
+        expect($result['isError'])->toBeFalse($result['text'])
+            ->and($service->refresh()->status)->toBe(ServiceStatus::RESTARTING);
+    });
+});
+
+describe('vito_get_workflow_run_log', function (): void {
+    test('returns the log, or says it is empty', function (string $content, string $expected): void {
+        Storage::fake('logs');
+        Storage::disk('logs')->put('workflow.log', $content);
+        $workflow = Workflow::factory()->create(['project_id' => $this->server->project_id, 'user_id' => $this->user->id]);
+        $run = WorkflowRun::query()->create([
+            'workflow_id' => $workflow->id,
+            'user_id' => $this->user->id,
+            'status' => WorkflowRunStatus::COMPLETED,
+            'log_disk' => 'logs',
+            'log_path' => 'workflow.log',
+        ]);
+
+        $result = $this->callTool('vito_get_workflow_run_log', [
+            'project_id' => $this->server->project_id,
+            'workflow_id' => $workflow->id,
+            'workflow_run_id' => $run->id,
+        ]);
+
+        expect($result['isError'])->toBeFalse($result['text'])
+            ->and($result['text'])->toBe($expected);
+    })->with([
+        'with content' => ["step 1 done\n", "step 1 done\n"],
+        'empty' => ['', 'The log of this workflow run is empty.'],
+    ]);
 });
