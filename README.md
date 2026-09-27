@@ -121,6 +121,18 @@ Code style runs standalone: `composer install && composer lint:test` in this rep
 
 CI does the same against the pinned Vito release and, as an advisory job, the `4.x` branch.
 
+### Commits and releases
+
+Commit messages and PR titles follow [Conventional Commits](https://www.conventionalcommits.org): `feat: …` for new
+tools or arguments, `fix(sites): …` for bug fixes, `feat!: …` for breaking changes, and `docs`, `test`, `ci`,
+`refactor` or `chore` for the rest. PRs are squash-merged, so the PR title becomes the commit on `main`; a check
+rejects titles that don't follow the format.
+
+Releases are made by [release-please](https://github.com/googleapis/release-please). It keeps a release PR open with
+the next version, the `composer.json` version bump and the `CHANGELOG.md` entry, built from the commits on `main`.
+Merging that PR tags the release and publishes the GitHub release that Vito installs from. While the version is below
+1.0, `feat` and breaking changes bump the minor version and `fix` bumps the patch.
+
 ## License
 
 MIT

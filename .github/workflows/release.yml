@@ -1,21 +1,26 @@
 name: Release
 
-# Vito installs plugins from GitHub releases, so every tag becomes one.
+# release-please keeps a release PR open with the next version and its
+# changelog, built from the Conventional Commits merged into main. Merging that
+# PR tags the release and publishes it as a GitHub release, which is what Vito
+# installs plugins from.
 on:
   push:
-    tags:
-      - "v*"
-      - "[0-9]+.[0-9]+.[0-9]+"
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  release:
+  release-please:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-      - uses: actions/checkout@v7
-
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v3
+      - uses: googleapis/release-please-action@v5
         with:
-          generate_release_notes: true
+          # PRs opened with the default token do not trigger CI. Set a
+          # RELEASE_PLEASE_TOKEN secret (a fine-grained PAT) to get CI on
+          # release PRs.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
