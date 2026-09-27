@@ -101,7 +101,7 @@ final class Sites
             Tool::make('vito_get_deployment')
                 ->title('Get deployment')
                 ->readOnly()
-                ->description('Get a single deployment of a site, including its log output.')
+                ->description('Get a single deployment of a site: status, commit and release. Vito\'s API does not return the deployment log text; the log field is metadata only, so the log has to be read in the Vito UI.')
                 ->input([
                     'project_id' => Arg::projectId(),
                     'server_id' => Arg::serverId(),

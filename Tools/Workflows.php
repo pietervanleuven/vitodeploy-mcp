@@ -4,6 +4,7 @@ namespace App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Tools;
 
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\Arg;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\Tool;
+use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\ToolContext;
 
 final class Workflows
 {
@@ -53,7 +54,16 @@ final class Workflows
                     'workflow_id' => Arg::integer('Workflow ID (see vito_list_workflows)'),
                     'workflow_run_id' => Arg::integer('Workflow run ID (see vito_list_workflow_runs)'),
                 ])
-                ->route('api.projects.workflows.runs.log'),
+                ->handle(
+                    function (array $arguments, ToolContext $context) {
+                        $log = $context->api->call('api.projects.workflows.runs.log', $arguments);
+
+                        // An empty log file comes back as an empty body, which the
+                        // dispatcher reports as a bare success.
+                        return is_string($log) && $log !== '' ? $log : 'The log of this workflow run is empty.';
+                    },
+                    ['api.projects.workflows.runs.log'],
+                ),
         ];
     }
 }
