@@ -26,6 +26,19 @@ jobs:
       - name: Check code style
         run: ./vendor/bin/pint --test
 
+  workflows:
+    name: Workflows (actionlint)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      # Also runs shellcheck on every run: step, which the runner image ships.
+      - name: Download actionlint
+        run: bash <(curl -sSf https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+
+      - name: Check workflows
+        run: ./actionlint -color
+
   vito:
     name: Tests and static analysis (Vito ${{ matrix.vito-ref }})
     runs-on: ubuntu-22.04
