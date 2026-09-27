@@ -9,6 +9,10 @@ the agent.
 
 Requires VitoDeploy **4.1** or later.
 
+> [!NOTE]
+> This is an early release. Tool names and arguments may still change before 1.0, so pin a version if you script
+> against it.
+
 ## How it works
 
 Every tool is a thin wrapper around one of Vito's own REST API routes. The plugin runs that route in-process, as the
