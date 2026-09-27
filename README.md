@@ -61,7 +61,7 @@ connectors on claude.ai) are not supported.
 
 ## Tools
 
-- **Projects**: health check, list and create projects
+- **Projects**: health check, list and create projects, list source control connections
 - **Servers**: list, get, reboot
 - **Sites**: list, get, create, delete, deploy, deployments, deployment script get/update, web directory, `.env`
   keys/update, SSL enable/disable, list SSL certificates

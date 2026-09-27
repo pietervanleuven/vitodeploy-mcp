@@ -40,7 +40,7 @@ final class Sites
             Tool::make('vito_create_site')
                 ->title('Create site')
                 ->nonDestructive()
-                ->description('Create a new site on a server. Type is e.g. \'laravel\', \'php\', \'php-blank\', \'phpmyadmin\', \'wordpress\' or \'load-balancer\' depending on the Vito instance\'s enabled site types.')
+                ->description('Create a new site on a server. Type is e.g. \'laravel\', \'php\', \'php-blank\', \'phpmyadmin\', \'wordpress\' or \'load-balancer\' depending on the Vito instance\'s enabled site types. Laravel and PHP sites need php_version, source_control, repository and branch; php-blank and phpmyadmin need php_version; Node, Bun and other proxied sites need source_control, repository, branch and port.')
                 ->input([
                     'project_id' => Arg::projectId(),
                     'server_id' => Arg::serverId(),
@@ -48,9 +48,15 @@ final class Sites
                     'domain' => Arg::string('Primary domain of the site'),
                     'user' => Arg::string('Linux user the site runs as'),
                     'aliases' => Arg::optional(Arg::array(['type' => 'string'], 'Additional domains')),
+                    'php_version' => Arg::optional(Arg::string('PHP version installed on the server, e.g. 8.4 (see vito_list_services)')),
+                    'source_control' => Arg::optional(Arg::integer('Source control connection ID (see vito_list_source_controls)')),
                     'repository' => Arg::optional(Arg::string('Git repository, e.g. org/repo')),
                     'branch' => Arg::optional(Arg::string('Git branch to deploy')),
-                    'source_control_id' => Arg::optional(Arg::integer('Source control connection ID')),
+                    'web_directory' => Arg::optional(Arg::string('Directory relative to the site path that the web server serves, e.g. public')),
+                    'composer' => Arg::optional(Arg::boolean('Run composer install when the site is created')),
+                    'port' => Arg::optional(Arg::integer('Port the app listens on, for proxied sites (1024-65535)')),
+                    'start_command' => Arg::optional(Arg::string('Command that starts the app, for proxied sites')),
+                    'package_manager' => Arg::optional(Arg::enum(['none', 'node', 'pnpm', 'yarn'], 'JavaScript package manager to install')),
                     'node_version' => Arg::optional(Arg::enum(['none', '22', '23', '24'], '')),
                     'bun_version' => Arg::optional(Arg::enum(['none', '1.0', '1.1', '1.2'], '')),
                 ])

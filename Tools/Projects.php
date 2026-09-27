@@ -33,6 +33,15 @@ final class Projects
                     'name' => Arg::string('Project name'),
                 ])
                 ->route('api.projects.create'),
+
+            Tool::make('vito_list_source_controls')
+                ->title('List source controls')
+                ->readOnly()
+                ->description('List the source control connections (GitHub, GitLab, Bitbucket, …) usable in a project, for the source_control argument of vito_create_site.')
+                ->input([
+                    'project_id' => Arg::projectId(),
+                ])
+                ->route('api.projects.source-controls'),
         ];
     }
 }

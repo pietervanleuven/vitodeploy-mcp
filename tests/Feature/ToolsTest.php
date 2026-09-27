@@ -6,13 +6,17 @@ use App\Facades\SSH;
 use App\Models\CronJob;
 use App\Models\Project;
 use App\Models\Server;
+use App\Models\Site;
+use App\Models\SourceControl;
 use App\Models\Worker;
+use App\SourceControlProviders\Github;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\Tool;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\ToolRegistry;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Support\EnvKeys;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\tests\Support\InteractsWithMcp;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
@@ -51,7 +55,7 @@ describe('registry', function (): void {
     test('every tool is named, described and annotated', function (): void {
         $tools = ToolRegistry::default()->all();
 
-        expect($tools)->toHaveCount(49);
+        expect($tools)->toHaveCount(50);
         foreach ($tools as $tool) {
             $listing = $tool->toListing();
             expect($listing['name'])->toMatch('/^vito_[a-z_]+$/')
@@ -74,7 +78,7 @@ describe('registry', function (): void {
 
 describe('tokens', function (): void {
     test('a write token sees every tool', function (): void {
-        expect($this->mcp('tools/list')->json('result.tools'))->toHaveCount(49);
+        expect($this->mcp('tools/list')->json('result.tools'))->toHaveCount(50);
     });
 
     test('a read-only token sees only read-only tools', function (): void {
@@ -149,6 +153,34 @@ describe('calls', function (): void {
         expect($this->callTool('vito_get_server', $this->serverIds())['isError'])->toBeFalse()
             ->and($this->callTool('vito_list_sites', $this->serverIds())['isError'])->toBeFalse()
             ->and(request()->path())->toBe('api/mcp');
+    });
+});
+
+describe('vito_create_site', function (): void {
+    test('creates a laravel site with a php version and source control', function (): void {
+        SSH::fake();
+        Http::fake(['https://api.github.com/repos/*' => Http::response([], 201)]);
+        $sourceControl = SourceControl::factory()->create(['provider' => Github::id(), 'user_id' => $this->user->id]);
+
+        $listed = $this->callTool('vito_list_source_controls', ['project_id' => $this->server->project_id]);
+        expect(array_column($listed['data']['data'], 'id'))->toContain($sourceControl->id);
+
+        $result = $this->callTool('vito_create_site', [
+            ...$this->serverIds(),
+            'type' => 'laravel',
+            'domain' => 'mcp.example.com',
+            'user' => 'mcp',
+            'php_version' => '8.2',
+            'source_control' => $sourceControl->id,
+            'repository' => 'org/repo',
+            'branch' => 'main',
+            'web_directory' => 'public',
+            'composer' => true,
+        ]);
+
+        expect($result['isError'])->toBeFalse($result['text'])
+            ->and($result['data']['domain'])->toBe('mcp.example.com')
+            ->and(Site::query()->where('domain', 'mcp.example.com')->value('source_control_id'))->toBe($sourceControl->id);
     });
 });
 
