@@ -5,7 +5,9 @@ namespace App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Tools;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\Arg;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\Tool;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\ToolContext;
+use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\ToolError;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Support\EnvKeys;
+use Illuminate\Support\Arr;
 
 final class Sites
 {
@@ -154,7 +156,7 @@ final class Sites
             Tool::make('vito_update_site_env')
                 ->title('Update site .env')
                 ->destructive()
-                ->description('Replace the environment (.env) file content of a site.')
+                ->description('Replace the whole environment (.env) file of a site. Any variable missing from env is removed, so to change or add individual variables use vito_set_site_env_vars instead.')
                 ->input([
                     'project_id' => Arg::projectId(),
                     'server_id' => Arg::serverId(),
@@ -162,6 +164,66 @@ final class Sites
                     'env' => Arg::string('Full .env file content'),
                 ])
                 ->route('api.projects.servers.sites.env'),
+
+            Tool::make('vito_set_site_env_vars')
+                ->title('Set site .env variables')
+                ->destructive()
+                ->description('Set, add or remove individual variables in a site\'s .env file. Every other variable keeps its current value, secrets included, without the values ever being read back. Comments and blank lines in the file are not kept. Returns the resulting key names.')
+                ->input([
+                    'project_id' => Arg::projectId(),
+                    'server_id' => Arg::serverId(),
+                    'site_id' => Arg::siteId(),
+                    'set' => Arg::optional(Arg::array([
+                        'type' => 'object',
+                        'properties' => [
+                            'key' => Arg::string('Variable name'),
+                            'value' => Arg::string('New value'),
+                            'is_secret' => Arg::boolean('Mark as secret, so Vito masks it (default: keep the current marking, or false for a new key)'),
+                        ],
+                        'required' => ['key', 'value'],
+                        'additionalProperties' => false,
+                    ], 'Variables to change or add')),
+                    'unset' => Arg::optional(Arg::array(['type' => 'string'], 'Names of variables to remove')),
+                ])
+                ->handle(
+                    function (array $arguments, ToolContext $context) {
+                        $ids = Arr::only($arguments, ['project_id', 'server_id', 'site_id']);
+                        $set = array_column($arguments['set'] ?? [], null, 'key');
+                        $unset = array_flip($arguments['unset'] ?? []);
+                        if ($set === [] && $unset === []) {
+                            throw new ToolError('Pass at least one variable in set or unset.');
+                        }
+
+                        // Vito writes exactly the variables it is sent, so send
+                        // every current one. Secrets arrive masked as an empty
+                        // value, which Vito restores from the live file on write.
+                        $current = $context->api->call('api.projects.servers.sites.env.show', $ids)['data']['variables'] ?? [];
+                        $variables = [];
+                        foreach ($current as $variable) {
+                            $key = $variable['key'];
+                            if (isset($unset[$key])) {
+                                continue;
+                            }
+                            if (isset($set[$key])) {
+                                $variable = ['is_secret' => $variable['is_secret'], ...$set[$key]];
+                                unset($set[$key]);
+                            }
+                            $variables[] = $variable;
+                        }
+                        foreach ($set as $variable) {
+                            $variables[] = ['is_secret' => false, ...$variable];
+                        }
+
+                        if ($variables === []) {
+                            throw new ToolError('This would leave the .env file empty; use vito_update_site_env to replace the file instead.');
+                        }
+
+                        $context->api->call('api.projects.servers.sites.env', [...$ids, 'variables' => $variables]);
+
+                        return ['keys' => array_column($variables, 'key')];
+                    },
+                    ['api.projects.servers.sites.env.show', 'api.projects.servers.sites.env'],
+                ),
 
             Tool::make('vito_update_web_directory')
                 ->title('Update web directory')

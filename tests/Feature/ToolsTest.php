@@ -57,7 +57,7 @@ describe('registry', function (): void {
     test('every tool is named, described and annotated', function (): void {
         $tools = ToolRegistry::default()->all();
 
-        expect($tools)->toHaveCount(50);
+        expect($tools)->toHaveCount(51);
         foreach ($tools as $tool) {
             $listing = $tool->toListing();
             expect($listing['name'])->toMatch('/^vito_[a-z_]+$/')
@@ -80,7 +80,7 @@ describe('registry', function (): void {
 
 describe('tokens', function (): void {
     test('a write token sees every tool', function (): void {
-        expect($this->mcp('tools/list')->json('result.tools'))->toHaveCount(50);
+        expect($this->mcp('tools/list')->json('result.tools'))->toHaveCount(51);
     });
 
     test('a read-only token sees only read-only tools', function (): void {
@@ -202,6 +202,32 @@ describe('vito_get_site_env', function (): void {
         expect(EnvKeys::from(['env' => "# comment\nAPP_NAME=Corpus\n\nexport QUEUE=redis\n  MAIL.HOST = x\nnot a var"]))
             ->toBe(['APP_NAME', 'QUEUE', 'MAIL.HOST'])
             ->and(EnvKeys::from([]))->toBe([]);
+    });
+});
+
+describe('vito_set_site_env_vars', function (): void {
+    test('changes, adds and removes variables and keeps the rest', function (): void {
+        $ssh = SSH::fake("APP_NAME=Old\nDB_PASSWORD=hunter2\nQUEUE=sync");
+        $this->site->update(['env_variables' => ['DB_PASSWORD']]);
+
+        $result = $this->callTool('vito_set_site_env_vars', [
+            ...$this->serverIds(),
+            'site_id' => $this->site->id,
+            'set' => [['key' => 'APP_NAME', 'value' => 'New'], ['key' => 'CACHE_STORE', 'value' => 'redis']],
+            'unset' => ['QUEUE'],
+        ]);
+
+        expect($result['isError'])->toBeFalse($result['text'])
+            ->and($result['data'])->toBe(['keys' => ['APP_NAME', 'DB_PASSWORD', 'CACHE_STORE']])
+            ->and($result['text'])->not->toContain('hunter2')
+            ->and($ssh->getUploadedContent())->toBe("APP_NAME=New\nDB_PASSWORD=hunter2\nCACHE_STORE=redis")
+            ->and($this->site->refresh()->env_variables)->toBe(['DB_PASSWORD']);
+    });
+
+    test('needs something to change', function (): void {
+        $result = $this->callTool('vito_set_site_env_vars', [...$this->serverIds(), 'site_id' => $this->site->id]);
+
+        expect($result['isError'])->toBeTrue();
     });
 });
 

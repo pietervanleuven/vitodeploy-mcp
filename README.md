@@ -25,8 +25,8 @@ additions are a route (`/api/mcp`) and the MCP protocol handling.
 1. In Vito, open **Admin → Plugins**, install **MCP Server** (or install it from this repository's GitHub URL) and
    enable it.
 2. Create an API key under **Settings → API Keys**. Give it only what the agent needs:
-   - `read` only: the agent sees the 24 read-only tools and nothing else.
-   - `read` and `write`: all 49 tools.
+   - `read` only: the agent sees the 25 read-only tools and nothing else.
+   - `read` and `write`: all 51 tools.
    - Limit the key to one project if the agent only needs that project.
 
 ## Connecting a client
@@ -65,7 +65,7 @@ connectors on claude.ai) are not supported.
 - **Projects**: health check, list and create projects, list source control connections
 - **Servers**: list, get, reboot
 - **Sites**: list, get, create, delete, deploy, deployments, deployment script get/update, web directory, `.env`
-  keys/update, SSL enable/disable, list SSL certificates
+  keys, replace the file or set/unset single variables, SSL enable/disable, list SSL certificates
 - **Databases**: databases and database users list/create/delete/link
 - **Services**: list, start/stop/restart/reload/enable/disable
 - **Workers**: list (server or site), create, update, delete, start/restart, logs
@@ -83,7 +83,8 @@ cron job, and reading deployment logs.
 
 ## Security
 
-- `.env` values never reach the model: `vito_get_site_env` returns variable names only.
+- `.env` values never reach the model: `vito_get_site_env` returns variable names only, and `vito_set_site_env_vars`
+  changes single variables without reading the others back.
 - Browser requests from other origins are rejected, as the MCP specification requires for HTTP servers.
 - Worker and workflow logs can contain anything your applications print. Treat them as sensitive and, in agentic use,
   as untrusted input.
