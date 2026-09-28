@@ -100,6 +100,34 @@ MCP Streamable HTTP, stateless: each `POST` carries one JSON-RPC message and rec
 sessions and no server-sent event stream (`GET` and `DELETE` return 405). Supported protocol versions: `2025-11-25`,
 `2025-06-18` and `2025-03-26`.
 
+## Extending from another plugin
+
+Other Vito plugins can add tools with `ToolRegistry::extend()`. Register a provider from your plugin's `boot()`; it is
+called lazily on every request, so plugin boot order does not matter. Guard the call with `class_exists()` so your
+plugin works without this one.
+
+```php
+use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\Tool;
+use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\ToolRegistry;
+
+if (class_exists(ToolRegistry::class)) {
+    ToolRegistry::extend(fn () => [
+        Tool::make('vito_list_widgets')
+            ->title('List widgets')
+            ->description('Lists the widgets of a server.')
+            ->input(['server_id' => ['type' => 'integer'], 'project_id' => ['type' => 'integer']])
+            ->readOnly()
+            ->route('api.projects.servers.widgets.index'),
+    ]);
+}
+```
+
+The same rules apply as for core tools: every tool goes through a named Vito API route (so authentication, token
+abilities, policies and validation stay Vito's own), and read-only tools are the only ones a `read`-only key sees. A tool
+whose name is already taken, by a core tool or an earlier extension, is ignored and a warning is logged. A provider that
+throws is skipped and logged, and never breaks the endpoint. Extension tools are not part of the tool counts above.
+Tests can call `ToolRegistry::flushExtensions()` to reset the registry.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add a tool, the commit conventions and how releases are made.
