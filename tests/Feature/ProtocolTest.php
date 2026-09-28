@@ -63,7 +63,16 @@ test('rejects batches and non-JSON-RPC payloads', function (array $payload): voi
     'batch' => [[['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping']]],
     'wrong version' => [['jsonrpc' => '1.0', 'id' => 1, 'method' => 'ping']],
     'object id' => [['jsonrpc' => '2.0', 'id' => ['x' => 1], 'method' => 'ping']],
+    'missing method' => [['jsonrpc' => '2.0', 'id' => 1]],
 ]);
+
+test('rejects a notification without a method', function (): void {
+    Sanctum::actingAs($this->user, ['read']);
+
+    $this->postJson('/api/mcp', ['jsonrpc' => '2.0'])
+        ->assertOk()
+        ->assertJsonPath('error.code', -32600);
+});
 
 test('only accepts POST', function (string $method): void {
     Sanctum::actingAs($this->user, ['read']);

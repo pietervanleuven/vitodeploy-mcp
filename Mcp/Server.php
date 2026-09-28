@@ -53,7 +53,15 @@ final class Server
         $method = $message['method'] ?? null;
 
         // Notifications (no id) and responses to server requests need no answer.
-        if (! array_key_exists('id', $message) || $method === null) {
+        if (! array_key_exists('id', $message)) {
+            if (! is_string($method)) {
+                return self::error(null, self::INVALID_REQUEST, 'Invalid Request');
+            }
+
+            return null;
+        }
+
+        if ($method === null && (array_key_exists('result', $message) || array_key_exists('error', $message))) {
             return null;
         }
 
