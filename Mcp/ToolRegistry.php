@@ -3,11 +3,17 @@
 namespace App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp;
 
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Tools;
+use Closure;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final class ToolRegistry
 {
     /** @var array<string, Tool> */
     private array $tools = [];
+
+    /** @var list<Closure(): iterable<Tool>> */
+    private static array $providers = [];
 
     /**
      * @param  list<Tool>  $tools
@@ -19,9 +25,28 @@ final class ToolRegistry
         }
     }
 
+    /**
+     * Lets another plugin add tools. The provider is evaluated lazily on every
+     * default() call, so plugin boot order does not matter. Extension tools
+     * are ordinary Tool objects that run through named Vito API routes; a name
+     * that clashes with a core tool (or an earlier extension) is ignored.
+     *
+     * @param  Closure(): iterable<Tool>  $provider
+     */
+    public static function extend(Closure $provider): void
+    {
+        self::$providers[] = $provider;
+    }
+
+    /** Removes every extension provider (for tests). */
+    public static function flushExtensions(): void
+    {
+        self::$providers = [];
+    }
+
     public static function default(): self
     {
-        return new self([
+        $core = [
             ...Tools\Projects::tools(),
             ...Tools\Servers::tools(),
             ...Tools\Sites::tools(),
@@ -32,7 +57,38 @@ final class ToolRegistry
             ...Tools\Firewall::tools(),
             ...Tools\Workflows::tools(),
             ...Tools\SshKeys::tools(),
-        ]);
+        ];
+
+        $names = array_fill_keys(array_map(fn (Tool $tool) => $tool->name, $core), true);
+        $tools = $core;
+
+        foreach (self::$providers as $provider) {
+            try {
+                $extra = [...$provider()];
+            } catch (Throwable $e) {
+                Log::warning('MCP tool provider skipped: '.$e->getMessage());
+
+                continue;
+            }
+
+            /** @var list<mixed> $extra */
+            foreach ($extra as $tool) {
+                if (! $tool instanceof Tool) {
+                    Log::warning('MCP tool provider returned a non-Tool value; ignored.');
+
+                    continue;
+                }
+                if (isset($names[$tool->name])) {
+                    Log::warning("MCP extension tool '{$tool->name}' ignored: the name is already registered.");
+
+                    continue;
+                }
+                $names[$tool->name] = true;
+                $tools[] = $tool;
+            }
+        }
+
+        return new self($tools);
     }
 
     /**
