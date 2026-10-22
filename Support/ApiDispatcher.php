@@ -141,7 +141,13 @@ final class ApiDispatcher
             return json_encode($data, JSON_UNESCAPED_SLASHES) ?: 'Unknown error';
         }
 
-        $message = is_string($data['message'] ?? null) ? $data['message'] : 'Unknown error';
+        // Vito renders SSH and app errors as {"error": ...}, which holds the
+        // tail of the server log; everything else uses Laravel's "message".
+        $message = match (true) {
+            is_string($data['message'] ?? null) => $data['message'],
+            is_string($data['error'] ?? null) && $data['error'] !== '' => $data['error'],
+            default => 'Unknown error',
+        };
         if (is_array($data['errors'] ?? null)) {
             $message .= ' '.json_encode($data['errors'], JSON_UNESCAPED_SLASHES);
         }

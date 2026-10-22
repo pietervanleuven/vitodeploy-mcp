@@ -143,6 +143,17 @@ describe('calls', function (): void {
             ->and($result['text'])->toContain('failed with 404');
     });
 
+    test('reports the server output Vito returns for a failed SSH command', function (): void {
+        SSH::fake('crontab: permission denied')->execWillFail();
+        $cronJob = CronJob::factory()->create(['server_id' => $this->server->id, 'user' => 'vito']);
+
+        $result = $this->callTool('vito_delete_cron_job', [...$this->serverIds(), 'cron_job_id' => $cronJob->id]);
+
+        expect($result['isError'])->toBeTrue()
+            ->and($result['text'])->toContain('failed with 500')
+            ->and($result['text'])->not->toContain('Unknown error');
+    });
+
     test('reports Vito validation errors', function (): void {
         $result = $this->callTool('vito_create_worker', [
             ...$this->serverIds(),
