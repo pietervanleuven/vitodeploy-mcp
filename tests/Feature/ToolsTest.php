@@ -8,6 +8,7 @@ use App\Facades\SSH;
 use App\Models\CronJob;
 use App\Models\Database;
 use App\Models\DatabaseUser;
+use App\Models\Deployment;
 use App\Models\Project;
 use App\Models\Server;
 use App\Models\Site;
@@ -268,6 +269,22 @@ describe('vito_set_site_env_vars', function (): void {
         $result = $this->callTool('vito_set_site_env_vars', [...$this->serverIds(), 'site_id' => $this->site->id]);
 
         expect($result['isError'])->toBeTrue();
+    });
+});
+
+describe('vito_list_deployments', function (): void {
+    test('cuts commit messages to their first line', function (): void {
+        Deployment::factory()->create([
+            'site_id' => $this->site->id,
+            'log_id' => null,
+            'commit_data' => ['name' => 'a', 'email' => 'a@example.com', 'message' => "feat: one\n\nA long body."],
+        ]);
+
+        $result = $this->callTool('vito_list_deployments', [...$this->serverIds(), 'site_id' => $this->site->id]);
+
+        expect($result['isError'])->toBeFalse($result['text'])
+            ->and($result['data']['data'][0]['commit_data']['message'])->toBe('feat: one')
+            ->and($result['data']['data'][0]['commit_data']['name'])->toBe('a');
     });
 });
 

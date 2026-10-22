@@ -8,6 +8,7 @@ use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\ToolContext;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Mcp\ToolError;
 use App\Vito\Plugins\Pietervanleuven\VitodeployMcp\Support\EnvKeys;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 
 final class Sites
 {
@@ -89,14 +90,24 @@ final class Sites
             Tool::make('vito_list_deployments')
                 ->title('List deployments')
                 ->readOnly()
-                ->description('List deployments of a site with their status.')
+                ->description('List deployments of a site with their status, newest first. Commit messages are cut to their first line; vito_get_deployment returns the full message.')
                 ->input([
                     'project_id' => Arg::projectId(),
                     'server_id' => Arg::serverId(),
                     'site_id' => Arg::siteId(),
                     'page' => Arg::page(),
                 ])
-                ->route('api.projects.servers.sites.deployments'),
+                ->handle(
+                    function (array $arguments, ToolContext $context) {
+                        $response = $context->api->call('api.projects.servers.sites.deployments', $arguments);
+                        if (is_array($response) && is_array($response['data'] ?? null)) {
+                            $response['data'] = array_map(self::commitSubjectOnly(...), $response['data']);
+                        }
+
+                        return $response;
+                    },
+                    ['api.projects.servers.sites.deployments'],
+                ),
 
             Tool::make('vito_get_deployment')
                 ->title('Get deployment')
@@ -283,6 +294,19 @@ final class Sites
                 ])
                 ->route('api.projects.servers.ssls'),
         ];
+    }
+
+    /**
+     * Long commit messages (squash-merge bodies) made up most of a page of
+     * deployments; the subject line is enough to tell them apart.
+     */
+    private static function commitSubjectOnly(mixed $deployment): mixed
+    {
+        if (is_array($deployment) && is_array($deployment['commit_data'] ?? null) && is_string($deployment['commit_data']['message'] ?? null)) {
+            $deployment['commit_data']['message'] = Str::before($deployment['commit_data']['message'], "\n");
+        }
+
+        return $deployment;
     }
 
     /**
