@@ -125,7 +125,8 @@ describe('calls', function (): void {
 
         expect($result['isError'])->toBeFalse()
             ->and($result['data']['id'])->toBe($this->server->id)
-            ->and($result['data']['name'])->toBe($this->server->name);
+            ->and($result['data']['name'])->toBe($this->server->name)
+            ->and($result['text'])->not->toContain("\n");
     });
 
     test('passes other arguments as the query string on GET', function (): void {
