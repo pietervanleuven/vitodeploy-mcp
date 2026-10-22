@@ -47,8 +47,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Pinned release: this is what the plugin is verified against.
+          # Pinned releases: the oldest supported (min_vito_version) and the
+          # latest, which is what the plugin is verified against.
           - vito-ref: "4.1.1"
+            experimental: false
+          - vito-ref: "4.2.1"
             experimental: false
           # Moving branch: early warning for upstream changes.
           - vito-ref: "4.x"
