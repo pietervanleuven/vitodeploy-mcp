@@ -144,16 +144,39 @@ describe('calls', function (): void {
     });
 
     test('reports Vito validation errors', function (): void {
-        $result = $this->callTool('vito_create_worker', [...$this->serverIds(), 'name' => 'x']);
+        $result = $this->callTool('vito_create_worker', [
+            ...$this->serverIds(),
+            'name' => 'x',
+            'command' => 'true',
+            'user' => 'nobody',
+            'auto_start' => true,
+            'auto_restart' => true,
+            'numprocs' => 0,
+        ]);
 
         expect($result['isError'])->toBeTrue()
             ->and($result['text'])->toContain('failed with 422')
-            ->and($result['text'])->toContain('command');
+            ->and($result['text'])->toContain('numprocs');
     });
 
     test('rejects unknown tools and non-object arguments', function (): void {
         $this->mcp('tools/call', ['name' => 'vito_nope'])->assertJsonPath('error.code', -32602);
         $this->mcp('tools/call', ['name' => 'vito_health', 'arguments' => [1, 2]])->assertJsonPath('error.code', -32602);
+    });
+
+    test('names missing required arguments instead of failing internally', function (): void {
+        $result = $this->callTool('vito_get_site', ['server_id' => $this->server->id, 'site_id' => null]);
+
+        expect($result['isError'])->toBeTrue()
+            ->and($result['text'])->toBe('vito_get_site is missing required arguments: project_id, site_id. Find IDs with vito_list_projects, then vito_list_servers and vito_list_sites.');
+    });
+
+    test('rejects arguments the tool does not declare before calling Vito', function (): void {
+        $result = $this->callTool('vito_create_database', [...$this->serverIds(), 'name' => 'app', 'charset' => 'utf8mb4', 'collation' => 'utf8mb4_unicode_ci', 'user' => true]);
+
+        expect($result['isError'])->toBeTrue()
+            ->and($result['text'])->toStartWith('vito_create_database does not accept user. Its arguments are: project_id, server_id,')
+            ->and(Database::query()->where('name', 'app')->exists())->toBeFalse();
     });
 
     test('keeps working across several calls in one request cycle', function (): void {

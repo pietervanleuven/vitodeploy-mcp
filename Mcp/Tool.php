@@ -167,10 +167,46 @@ final class Tool
      */
     public function call(array $arguments, ToolContext $context): mixed
     {
+        $this->validate($arguments);
+
         if ($this->handler === null) {
             throw new ToolError("Tool {$this->name} has no handler.");
         }
 
         return ($this->handler)($arguments, $context);
+    }
+
+    /**
+     * Enforces the top level of the input schema, which clients do not always
+     * do. Without this, a missing route ID fails while building the URL (an
+     * opaque internal error), and an unknown argument reaches Vito unchecked.
+     *
+     * @param  array<string, mixed>  $arguments
+     *
+     * @throws ToolError
+     */
+    private function validate(array $arguments): void
+    {
+        $unknown = array_diff(array_keys($arguments), array_keys($this->properties));
+        if ($unknown !== []) {
+            throw new ToolError(sprintf(
+                '%s does not accept %s. Its arguments are: %s.',
+                $this->name,
+                implode(', ', $unknown),
+                implode(', ', array_keys($this->properties)) ?: 'none',
+            ));
+        }
+
+        $missing = array_filter($this->required, fn (string $name) => ($arguments[$name] ?? null) === null);
+        if ($missing !== []) {
+            $ids = array_filter($missing, fn (string $name) => str_ends_with($name, '_id'));
+
+            throw new ToolError(sprintf(
+                '%s is missing required arguments: %s.%s',
+                $this->name,
+                implode(', ', $missing),
+                $ids === [] ? '' : ' Find IDs with vito_list_projects, then vito_list_servers and vito_list_sites.',
+            ));
+        }
     }
 }
