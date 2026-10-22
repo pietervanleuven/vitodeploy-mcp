@@ -9,6 +9,8 @@ use Illuminate\Support\Arr;
 
 final class Workers
 {
+    private const COMMAND_HINT = 'For a site with Modern Deployment, use the active release under <site path>/current, e.g. php /home/<user>/<domain>/current/artisan queue:work';
+
     /**
      * @return list<Tool>
      */
@@ -46,7 +48,7 @@ final class Workers
                     'project_id' => Arg::projectId(),
                     'server_id' => Arg::serverId(),
                     'name' => Arg::string('Worker name'),
-                    'command' => Arg::string('Command to run, e.g. php artisan queue:work'),
+                    'command' => Arg::string('Command to run, e.g. php artisan queue:work. '.self::COMMAND_HINT),
                     'user' => Arg::string('Linux user to run as'),
                     'auto_start' => Arg::boolean('Start automatically on boot'),
                     'auto_restart' => Arg::boolean('Restart automatically if it exits'),
@@ -64,7 +66,7 @@ final class Workers
                     'server_id' => Arg::serverId(),
                     'worker_id' => Arg::integer('Worker ID (see vito_list_workers)'),
                     'name' => Arg::optional(Arg::string('Worker name')),
-                    'command' => Arg::optional(Arg::string('Command to run')),
+                    'command' => Arg::optional(Arg::string('Command to run. '.self::COMMAND_HINT)),
                     'user' => Arg::optional(Arg::string('Linux user to run as')),
                     'auto_start' => Arg::optional(Arg::boolean('Start automatically on boot')),
                     'auto_restart' => Arg::optional(Arg::boolean('Restart automatically if it exits')),

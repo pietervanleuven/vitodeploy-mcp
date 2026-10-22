@@ -79,7 +79,7 @@ final class Sites
             Tool::make('vito_deploy_site')
                 ->title('Deploy site')
                 ->nonDestructive()
-                ->description('Trigger a deployment for a site. Runs the deployment script, or under Modern Deployment the build and pre-flight scripts (see vito_get_deployment_script).')
+                ->description('Trigger a deployment for a site. Runs the deployment script, or under Modern Deployment the build and pre-flight scripts (see vito_get_deployment_script). Returns the new deployment; follow its status with vito_get_deployment. Vito does not reload PHP-FPM after a deployment, so OPcache keeps the code of earlier releases until the PHP service is reloaded with vito_service_action.')
                 ->input([
                     'project_id' => Arg::projectId(),
                     'server_id' => Arg::serverId(),

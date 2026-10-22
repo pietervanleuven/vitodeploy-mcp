@@ -44,7 +44,7 @@ final class CronJobs
                 ->input([
                     'project_id' => Arg::projectId(),
                     'server_id' => Arg::serverId(),
-                    'command' => Arg::string('Command to run'),
+                    'command' => Arg::string('Command to run. For a site with Modern Deployment, use the active release under <site path>/current, e.g. php /home/<user>/<domain>/current/artisan schedule:run'),
                     'user' => Arg::string('Linux user to run as'),
                     'frequency' => Arg::string('Cron expression, e.g. \'* * * * *\' or \'0 3 * * *\''),
                     'custom' => Arg::optional(Arg::string('Only with frequency=\'custom\': the cron expression. Passing the expression as frequency does the same')),
