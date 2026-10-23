@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.1](https://github.com/pietervanleuven/vitodeploy-mcp/compare/v0.4.0...v0.4.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* check tool arguments against the input schema ([3339d57](https://github.com/pietervanleuven/vitodeploy-mcp/commit/3339d57f18c5e5e3c3e09e5873ab41e7473575eb))
+* report the server output when a Vito SSH command fails ([8c23b59](https://github.com/pietervanleuven/vitodeploy-mcp/commit/8c23b5928cad80661ab5824311f990e90e2d7b51))
+* return tool results as compact JSON ([72c791d](https://github.com/pietervanleuven/vitodeploy-mcp/commit/72c791d0f15a411037472a4ed8b5a7655f903c0d))
+* say where commands run under Modern Deployment and that PHP is not reloaded ([2f40483](https://github.com/pietervanleuven/vitodeploy-mcp/commit/2f404839ca62a0fd2890878ee522f49cd6c22b36))
+* **sites:** list deployments with the commit subject only ([5497246](https://github.com/pietervanleuven/vitodeploy-mcp/commit/54972468d2ce2cadfb41a8dca737c419154c504d))
+
 ## [0.4.0](https://github.com/pietervanleuven/vitodeploy-mcp/compare/v0.3.0...v0.4.0) (2026-09-29)
 
 
